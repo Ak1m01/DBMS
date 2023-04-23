@@ -1,0 +1,59 @@
+1.Procedure which does group by information:
+CREATE OR REPLACE PROCEDURE game_sales
+IS
+BEGIN
+  FOR r IN (
+    SELECT g.game_title, COUNT(*) AS num_purchases, SUM(p.purchase_price) AS revenue
+    FROM purchases p
+    JOIN games g ON p.game_id = g.game_id
+    GROUP BY g.game_title
+  )
+  LOOP
+    DBMS_OUTPUT.PUT_LINE(r.game_title || ': ' || r.num_purchases || ' purchases, revenue = ' || r.revenue);
+  END LOOP;
+END;
+
+2.Function which counts the number of records:
+CREATE OR REPLACE FUNCTION count_records(table_name VARCHAR2)
+RETURN NUMBER
+IS
+  total_records NUMBER;
+BEGIN
+  EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || table_name INTO total_records;
+  RETURN total_records;
+END;
+
+
+3.Procedure which uses SQL%ROWCOUNT to determine the number of rows affected:
+CREATE OR REPLACE PROCEDURE update_game_price(game_id NUMBER, new_price NUMBER)
+IS
+BEGIN
+  UPDATE games SET game_price = new_price WHERE game_id = game_id;
+  DBMS_OUTPUT.PUT_LINE('Number of rows updated: ' || SQL%ROWCOUNT);
+END;
+
+4.Add user-defined exception which disallows to enter title of item (e.g. book) to be less than 5 characters:
+CREATE OR REPLACE PROCEDURE insert_game(game_title VARCHAR2, game_description VARCHAR2, game_price NUMBER, game_release_date DATE, developer_id NUMBER)
+IS
+  title_length NUMBER;
+BEGIN
+  title_length := LENGTH(game_title);
+  IF title_length < 5 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Game title must be at least 5 characters.');
+  ELSE
+    INSERT INTO games (game_title, game_description, game_price, game_release_date, developer_id)
+    VALUES (game_title, game_description, game_price, game_release_date, developer_id);
+  END IF;
+END;
+
+
+5.Create a trigger before insert on any entity which will show the current number of rows in the table
+Write a report which will have the following structure:
+CREATE OR REPLACE TRIGGER show_num_rows
+BEFORE INSERT ON games
+DECLARE
+  num_rows NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO num_rows FROM games;
+  DBMS_OUTPUT.PUT_LINE('Current number of rows in games table: ' || num_rows);
+END;
